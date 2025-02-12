@@ -89,39 +89,35 @@ def depthFirstSearch(problem):
     "*** YOUR CODE HERE ***"
     from util import Stack
     
-    # Initialize the s using a stack
-    s = Stack()
+    # Initialize with (state, hitWalls, actions)
+    stack = Stack()
     startState = problem.getStartState()
-    s.push((startState, [], 0))  # (state, path, wallHits)
+    stack.push((startState, 0, []))
+    
+    visited = set()
+    visited.add((startState, 0))  # Mark (startState, hitWalls)
 
-    v = set()
-
-    while not s.isEmpty():
-        state, path, wallHits = s.pop()
-
-        # Check if goal is reached with 1 or 2 wall hits
-        if problem.isGoalState(state) and (1 <= wallHits and wallHits <= 2):
-            print(wallHits)
-            return path
-
-        # Mark state as v with wallHits
-        if (state, wallHits) in v:
+    while True:
+        if stack.isEmpty():
+            return []
+            
+        currentState, hitWalls, currentActions = stack.pop()
+        
+        if hitWalls > 2:
             continue
-        v.add((state, wallHits))
-
-        # Expand successors
-        for nextState, action, cost in problem.getSuccessors(state):
-            newWallHits = wallHits
-
-            # If nextState is a wall, count the hit but do NOT change nextState
-            if problem.isWall(nextState):  
-                if wallHits < 2:
-                    newWallHits += 1
-                else:
-                    continue  # Ignore paths that exceed wall limits
-
-            # Push valid states onto the stack
-            s.push((nextState, path + [action], newWallHits))
+            
+        if problem.isGoalState(currentState) and (1 <= hitWalls <= 2):
+            return currentActions
+            
+        for successor, action, stepCost in problem.getSuccessors(currentState):
+            if problem.isWall(successor):
+                nextState = (successor, hitWalls + 1)
+            else:
+                nextState = (successor, hitWalls)
+                
+            if (nextState[0], nextState[1]) not in visited:
+                stack.push((nextState[0], nextState[1], currentActions + [action]))
+                visited.add((nextState[0], nextState[1]))
 
     return []
     # util.raiseNotDefined()
@@ -134,30 +130,29 @@ def breadthFirstSearch(problem):
     q = Queue()
     
     startState = problem.getStartState()
-    q.push((startState, [], 0))
+    q.push((startState, 0, []))  # Current Position, Hitting Walls, Actions
 
-    v = set()
-    v.add(startState)
+    visited = set()
+    visited.add((startState, 0))
 
     while not q.isEmpty():
-        state, actions, wallHits = q.pop()
+        currentState, hitWalls, currentActions = q.pop()
         
-        if wallHits > 2:
+        if hitWalls > 2:
             continue
             
-        if problem.isGoalState(state) and (wallHits >= 1 and wallHits <=2):
-            print(wallHits)
-            return actions
+        if problem.isGoalState(currentState) and (1 <= hitWalls <= 2):
+            return currentActions
         
-        successors = problem.getSuccessors(state)
-        for nextState, action, cost in successors:
-            currentWallHits = wallHits
-            if problem.isWall(nextState):
-                currentWallHits = wallHits + 1
-
-            if nextState not in v:
-                q.push((nextState, actions + [action], currentWallHits))
-                v.add(nextState)
+        for successor, action, stepCost in problem.getSuccessors(currentState):
+            if problem.isWall(successor):
+                nextState = (successor, hitWalls + 1)  # Increase hitting walls by one
+            else:
+                nextState = (successor, hitWalls)  # Maintain hitting walls
+                
+            if (nextState[0], nextState[1]) not in visited:
+                q.push((nextState[0], nextState[1], currentActions + [action]))
+                visited.add((nextState[0], nextState[1]))
                 
     return []
     #util.raiseNotDefined()
@@ -166,36 +161,37 @@ def uniformCostSearch(problem):
     """Search the node of least total cost first."""
     from util import PriorityQueue
     
+    # Initialize with (state, hitWalls, actions) and cost=0
     pq = PriorityQueue()
     startState = problem.getStartState()
-    pq.push((startState, [], 0), 0)  # (state, path, wallHits), priority = cost
-
+    pq.push((startState, 0, []), 0)
+    
     visited = set()
+    visited.add((startState, 0))
 
-    while not pq.isEmpty():
-        state, path, wallHits = pq.pop()
-
-        # Goal check with valid wall hits
-        if problem.isGoalState(state) and 1 <= wallHits <= 2:
-            return path
-
-        if (state, wallHits) in visited:
+    while True:
+        if pq.isEmpty():
+            return []
+            
+        currentState, hitWalls, currentActions = pq.pop()
+        
+        if hitWalls > 2:
             continue
-        visited.add((state, wallHits))
-
-        for nextState, action, stepCost in problem.getSuccessors(state):
-            newWallHits = wallHits
-
-            if problem.isWall(nextState):  
-                if wallHits < 2:
-                    newWallHits += 1
-                else:
-                    continue  # Ignore invalid paths
-
-            newPath = path + [action]
-            newCost = problem.getCostOfActions(newPath)
-
-            pq.push((nextState, newPath, newWallHits), newCost)
+            
+        if problem.isGoalState(currentState) and (1 <= hitWalls <= 2):
+            return currentActions
+        
+        for successor, action, stepCost in problem.getSuccessors(currentState):
+            if problem.isWall(successor):
+                nextState = (successor, hitWalls + 1)
+            else:
+                nextState = (successor, hitWalls)
+                
+            if (nextState[0], nextState[1]) not in visited:
+                newActions = currentActions + [action]
+                newCost = problem.getCostOfActions(newActions)
+                pq.push((nextState[0], nextState[1], newActions), newCost)
+                visited.add((nextState[0], nextState[1]))
 
     return []
     # util.raiseNotDefined()
@@ -211,37 +207,39 @@ def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
     from util import PriorityQueue
     
+    # Initialize with (state, hitWalls, actions) and f(n)=h(n)
     pq = PriorityQueue()
     startState = problem.getStartState()
-    pq.push((startState, [], 0), heuristic(startState, problem))
-
+    pq.push((startState, 0, []), heuristic(startState, problem))
+    
     visited = set()
+    visited.add((startState, 0))
 
-    while not pq.isEmpty():
-        state, path, wallHits = pq.pop()
-
-        if problem.isGoalState(state) and 1 <= wallHits <= 2:
-            return path
-
-        if (state, wallHits) in visited:
+    while True:
+        if pq.isEmpty():
+            return []
+            
+        currentState, hitWalls, currentActions = pq.pop()
+        
+        if hitWalls > 2:
             continue
-        visited.add((state, wallHits))
-
-        for nextState, action, stepCost in problem.getSuccessors(state):
-            newWallHits = wallHits
-
-            if problem.isWall(nextState):  
-                if wallHits < 2:
-                    newWallHits += 1
-                else:
-                    continue  
-
-            newPath = path + [action]
-            g_n = problem.getCostOfActions(newPath)  # Cost to get here
-            h_n = heuristic(nextState, problem)  # Estimated cost to goal
-            f_n = g_n + h_n  # Total estimated cost
-
-            pq.push((nextState, newPath, newWallHits), f_n)
+            
+        if problem.isGoalState(currentState) and (1 <= hitWalls <= 2):
+            return currentActions
+            
+        for successor, action, stepCost in problem.getSuccessors(currentState):
+            if problem.isWall(successor):
+                nextState = (successor, hitWalls + 1)
+            else:
+                nextState = (successor, hitWalls)
+                
+            if (nextState[0], nextState[1]) not in visited:
+                newActions = currentActions + [action]
+                g_n = problem.getCostOfActions(newActions)
+                h_n = heuristic(nextState[0], problem)
+                f_n = g_n + h_n
+                pq.push((nextState[0], nextState[1], newActions), f_n)
+                visited.add((nextState[0], nextState[1]))
 
     return []
     # util.raiseNotDefined()
