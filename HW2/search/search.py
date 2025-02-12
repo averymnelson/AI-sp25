@@ -89,48 +89,40 @@ def depthFirstSearch(problem):
     "*** YOUR CODE HERE ***"
     from util import Stack
     
-    # Initialize the frontier using a stack
-    frontier = Stack()
-    # Add start state, empty path, and wall hits counter
+    # Initialize the s using a stack
+    s = Stack()
     startState = problem.getStartState()
-    frontier.push((startState, [], 0))
-    
-    # Initialize explored set
-    explored = set()
-    
-    while not frontier.isEmpty():
-        state, actions, wallHits = frontier.pop()
-        
-        # Skip if we've hit too many walls
-        if wallHits > 2:
+    s.push((startState, [], 0))  # (state, path, wallHits)
+
+    v = set()
+
+    while not s.isEmpty():
+        state, path, wallHits = s.pop()
+
+        # Check if goal is reached with 1 or 2 wall hits
+        if problem.isGoalState(state) and (1 <= wallHits and wallHits <= 2):
+            print(wallHits)
+            return path
+
+        # Mark state as v with wallHits
+        if (state, wallHits) in v:
             continue
-            
-        # Check if this state leads to goal
-        if problem.isGoalState(state) and wallHits >= 1:
-            return actions
-            
-        # Skip if we've already explored this state with same wall hits
-        stateKey = (state, wallHits)
-        if stateKey in explored:
-            continue
-            
-        # Add state to explored
-        explored.add(stateKey)
-        
-        # Get and process successors
-        successors = problem.getSuccessors(state)
-        for nextState, action, cost in successors:
-            # Check if successor is a wall
+        v.add((state, wallHits))
+
+        # Expand successors
+        for nextState, action, cost in problem.getSuccessors(state):
             newWallHits = wallHits
-            if problem.isWall(nextState):
-                newWallHits += 1
-                if newWallHits > 2:  # Skip if too many wall hits
-                    continue
-                    
-            newActions = actions + [action]
-            frontier.push((nextState, newActions, newWallHits))
-    
-    # No path found
+
+            # If nextState is a wall, count the hit but do NOT change nextState
+            if problem.isWall(nextState):  
+                if wallHits < 2:
+                    newWallHits += 1
+                else:
+                    continue  # Ignore paths that exceed wall limits
+
+            # Push valid states onto the stack
+            s.push((nextState, path + [action], newWallHits))
+
     return []
     # util.raiseNotDefined()
 
@@ -145,6 +137,7 @@ def breadthFirstSearch(problem):
     q.push((startState, [], 0))
 
     v = set()
+    v.add(startState)
 
     while not q.isEmpty():
         state, actions, wallHits = q.pop()
@@ -152,75 +145,58 @@ def breadthFirstSearch(problem):
         if wallHits > 2:
             continue
             
-        if problem.isGoalState(state) and wallHits >= 1:
+        if problem.isGoalState(state) and (wallHits >= 1 and wallHits <=2):
+            print(wallHits)
             return actions
-            
-        stateKey = (state, wallHits)
-        if stateKey in v:
-            continue
-            
-        v.add(stateKey)
         
         successors = problem.getSuccessors(state)
         for nextState, action, cost in successors:
-            newWallHits = wallHits
+            currentWallHits = wallHits
             if problem.isWall(nextState):
-                newWallHits += 1
-                if newWallHits > 2: 
-                    continue
-                    
-            newActions = actions + [action]
-            q.push((nextState, newActions, newWallHits))
-    
+                currentWallHits = wallHits + 1
+
+            if nextState not in v:
+                q.push((nextState, actions + [action], currentWallHits))
+                v.add(nextState)
+                
     return []
     #util.raiseNotDefined()
-
+    
 def uniformCostSearch(problem):
     """Search the node of least total cost first."""
-    "*** YOUR CODE HERE ***"
     from util import PriorityQueue
     
-    # Initialize using PriorityQueue
-    frontier = PriorityQueue()
+    pq = PriorityQueue()
     startState = problem.getStartState()
-    # Initial state has cost 0
-    frontier.push((startState, [], 0), 0)
-    # Mark visited with wall hits counter
+    pq.push((startState, [], 0), 0)  # (state, path, wallHits), priority = cost
+
     visited = set()
-    
-    while not frontier.isEmpty():
-        # Get next state to explore with lowest cost
-        state, actions, wallHits = frontier.pop()
-        stateKey = (state, wallHits)
-        
-        # Check if we've found goal state
-        if problem.isGoalState(state):
-            if 1 <= wallHits <= 2:  # Valid solution
-                return actions
-            continue  # Invalid solution, keep searching
-        
-        # Skip if already visited this state with same wall hits
-        if stateKey in visited:
+
+    while not pq.isEmpty():
+        state, path, wallHits = pq.pop()
+
+        # Goal check with valid wall hits
+        if problem.isGoalState(state) and 1 <= wallHits <= 2:
+            return path
+
+        if (state, wallHits) in visited:
             continue
-        
-        # Mark as visited
-        visited.add(stateKey)
-        
-        # Try each possible next state
+        visited.add((state, wallHits))
+
         for nextState, action, stepCost in problem.getSuccessors(state):
-            # Update wall hits count
-            newWallHits = wallHits + (1 if problem.isWall(nextState) else 0)
-            if newWallHits > 2:  # Too many wall hits
-                continue
-                
-            # Calculate new cost and path
-            newActions = actions + [action]
-            costToGo = problem.getCostOfActions(newActions)
-            
-            # Add to frontier if not visited
-            if (nextState, newWallHits) not in visited:
-                frontier.push((nextState, newActions, newWallHits), costToGo)
-    
+            newWallHits = wallHits
+
+            if problem.isWall(nextState):  
+                if wallHits < 2:
+                    newWallHits += 1
+                else:
+                    continue  # Ignore invalid paths
+
+            newPath = path + [action]
+            newCost = problem.getCostOfActions(newPath)
+
+            pq.push((nextState, newPath, newWallHits), newCost)
+
     return []
     # util.raiseNotDefined()
 
@@ -233,52 +209,40 @@ def nullHeuristic(state, problem=None):
 
 def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
-    "*** YOUR CODE HERE ***"
     from util import PriorityQueue
     
-    # Initialize using PriorityQueue
-    frontier = PriorityQueue()
+    pq = PriorityQueue()
     startState = problem.getStartState()
-    # Initial state has priority f(n) = g(n) + h(n) where g(n)=0
-    frontier.push((startState, [], 0), heuristic(startState, problem))
-    # Mark visited with wall hits counter
+    pq.push((startState, [], 0), heuristic(startState, problem))
+
     visited = set()
-    
-    while not frontier.isEmpty():
-        # Get next state to explore with lowest f(n)
-        state, actions, wallHits = frontier.pop()
-        stateKey = (state, wallHits)
-        
-        # Check if we've found goal state
-        if problem.isGoalState(state):
-            if 1 <= wallHits <= 2:  # Valid solution
-                return actions
-            continue  # Invalid solution, keep searching
-        
-        # Skip if already visited this state with same wall hits
-        if stateKey in visited:
+
+    while not pq.isEmpty():
+        state, path, wallHits = pq.pop()
+
+        if problem.isGoalState(state) and 1 <= wallHits <= 2:
+            return path
+
+        if (state, wallHits) in visited:
             continue
-        
-        # Mark as visited
-        visited.add(stateKey)
-        
-        # Try each possible next state
+        visited.add((state, wallHits))
+
         for nextState, action, stepCost in problem.getSuccessors(state):
-            # Update wall hits count
-            newWallHits = wallHits + (1 if problem.isWall(nextState) else 0)
-            if newWallHits > 2:  # Too many wall hits
-                continue
-                
-            # Calculate new cost and path
-            newActions = actions + [action]
-            g_n = problem.getCostOfActions(newActions)  # cost to reach node
-            h_n = heuristic(nextState, problem)  # estimated cost to goal
-            f_n = g_n + h_n  # total estimated cost
-            
-            # Add to frontier if not visited
-            if (nextState, newWallHits) not in visited:
-                frontier.push((nextState, newActions, newWallHits), f_n)
-    
+            newWallHits = wallHits
+
+            if problem.isWall(nextState):  
+                if wallHits < 2:
+                    newWallHits += 1
+                else:
+                    continue  
+
+            newPath = path + [action]
+            g_n = problem.getCostOfActions(newPath)  # Cost to get here
+            h_n = heuristic(nextState, problem)  # Estimated cost to goal
+            f_n = g_n + h_n  # Total estimated cost
+
+            pq.push((nextState, newPath, newWallHits), f_n)
+
     return []
     # util.raiseNotDefined()
 
