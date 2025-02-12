@@ -131,28 +131,43 @@ def breadthFirstSearch(problem):
     
     startState = problem.getStartState()
     q.push((startState, 0, []))  # Current Position, Hitting Walls, Actions
+    print(f"\nBFS Start state: {startState}")
 
     visited = set()
     visited.add((startState, 0))
 
     while not q.isEmpty():
         currentState, hitWalls, currentActions = q.pop()
+        print(f"\nCurrent state: {currentState}, Wall hits: {hitWalls}")
         
         if hitWalls > 2:
+            print("Too many wall hits, skipping...")
             continue
             
-        if problem.isGoalState(currentState) and (1 <= hitWalls <= 2):
-            return currentActions
+        # if problem.isGoalState(currentState) and (1 <= hitWalls <= 2):
+        #     return currentActions
+        if problem.isGoalState(currentState):
+            print(f"Found goal at {currentState} with {hitWalls} wall hits")
+            if 1 <= hitWalls <= 2:
+                return currentActions
+            print("Invalid number of wall hits, continuing search...")
         
         for successor, action, stepCost in problem.getSuccessors(currentState):
+            print(f"\nChecking successor: {successor} via {action}")
             if problem.isWall(successor):
+                print(f"Wall encountered at {successor}")
                 nextState = (successor, hitWalls + 1)  # Increase hitting walls by one
+                print(f"After wall hit: Using position {nextState[0]} with {nextState[1]} hits")
             else:
-                nextState = (successor, hitWalls)  # Maintain hitting walls
+                nextState = (successor, hitWalls)
+                print(f"Valid move to: {nextState[0]} keeping {nextState[1]} hits")
                 
             if (nextState[0], nextState[1]) not in visited:
+                print(f"Adding to queue: {nextState[0]} with {nextState[1]} hits")
                 q.push((nextState[0], nextState[1], currentActions + [action]))
                 visited.add((nextState[0], nextState[1]))
+            else:
+                print(f"Already visited: {nextState[0]} with {nextState[1]} hits")
                 
     return []
     #util.raiseNotDefined()
