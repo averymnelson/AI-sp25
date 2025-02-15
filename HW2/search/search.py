@@ -124,6 +124,7 @@ def breadthFirstSearch(problem):
     queue = Queue()
     queue.push((problem.getStartState(), [], 0))
     visited = set()
+    visited.add((problem.getStartState(), 0))
     
     while not queue.isEmpty():
         state, path, wall_hits = queue.pop()
