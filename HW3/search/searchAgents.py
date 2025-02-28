@@ -432,8 +432,35 @@ def cornersHeuristic(state, problem):
     walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
 
     "*** YOUR CODE HERE ***"
-
-    return 0  # Default to trivial solution
+    position, visited_corners, hit_walls = state
+    corners = problem.corners
+    
+    # If we've hit too many walls, return a very high cost to avoid this path
+    if hit_walls > 2:
+        return float('inf')
+    
+    # If we haven't hit any walls yet and this is a goal state, we need at least one wall hit
+    if hit_walls == 0 and all(visited_corners):
+        return float('inf')
+    
+    # Find unvisited corners
+    unvisited_corners = [corners[i] for i in range(len(corners)) if not visited_corners[i]]
+    
+    # If all corners are visited, return 0
+    if not unvisited_corners:
+        # If we need to hit more walls, add a minimum cost to ensure we hit at least one wall
+        if hit_walls == 0:
+            # Find the nearest wall from the current position
+            return 1  # Minimum cost to hit a wall
+        return 0
+    
+    # Calculate the Manhattan distance to each unvisited corner
+    distances = [util.manhattanDistance(position, corner) for corner in unvisited_corners]
+    
+    # Return the maximum distance to any unvisited corner
+    # This is admissible because we must visit all corners
+    return max(distances)
+    # return 0  # Default to trivial solution
 
 class AStarCornersAgent(SearchAgent):
     "A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"
@@ -453,7 +480,7 @@ class FoodSearchProblem:
     def __init__(self, startingGameState):
         self.start = (startingGameState.getPacmanPosition(), startingGameState.getFood())
         self.walls = startingGameState.getWalls()
-        print(f"self.walls 2: {self.walls}\n")
+        # print(f"self.walls 2: {self.walls}\n")
         self.startingGameState = startingGameState
         self._expanded = 0 # DO NOT CHANGE
         self.heuristicInfo = {} # A dictionary for the heuristic to store information
@@ -463,7 +490,7 @@ class FoodSearchProblem:
 
     def isWall(self, state):
         x, y = state[0]
-        print(f"self.walls x and y: {x}, {y}, {self.walls[x][y]}")
+        # print(f"self.walls x and y: {x}, {y}, {self.walls[x][y]}")
         return True if self.walls[x][y] else False
 
     def isGoalState(self, state):
@@ -531,8 +558,15 @@ def foodHeuristic(state, problem):
     footList = foodGrid.asList()
 
     "*** YOUR CODE HERE ***"
-
-    return 0
+    if not footList:
+        return 0
+    
+    # Calculate the Manhattan distance to each food dot
+    distances = [util.manhattanDistance(position, food) for food in footList]
+    
+    # Return the maximum distance to any food
+    # This is admissible because we must collect all food
+    return max(distances)
 
 class ClosestDotSearchAgent(SearchAgent):
     "Search for all food using a sequence of searches"
@@ -557,14 +591,20 @@ class ClosestDotSearchAgent(SearchAgent):
         Returns a path (a list of actions) to the closest dot, starting from
         gameState.
         """
+        from util import Queue
         # Here are some useful elements of the startState
         startPosition = gameState.getPacmanPosition()
         food = gameState.getFood()
         walls = gameState.getWalls()
         problem = AnyFoodSearchProblem(gameState)
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
-
+        actions, hits = search.bfs(problem, initialHit=self.numHits, returnHit=True)
+    
+    # Update the hit count
+        self.numHits += hits
+    
+        return actions
+        
 class AnyFoodSearchProblem(PositionSearchProblem):
     """
     A search problem for finding a path to any food.
@@ -597,7 +637,8 @@ class AnyFoodSearchProblem(PositionSearchProblem):
         complete the problem definition.
         """
         x,y = state
-        return self.food[x][y]
+        return (x, y) in self.food.asList()
+        # return self.food[x][y]
 
 
 def mazeDistance(point1, point2, gameState):

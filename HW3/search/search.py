@@ -98,7 +98,7 @@ def depthFirstSearch(problem, initialHit=0, returnHit=False):
     stack = util.Stack()
     visited = []
 
-    stack.push((startState, 0, []))
+    stack.push((startState, initialHit, []))
     visited.append((startState, initialHit))
 
     while True:
