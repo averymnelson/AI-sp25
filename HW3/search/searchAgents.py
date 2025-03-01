@@ -289,11 +289,11 @@ class CornersProblem(search.SearchProblem):
         """
         self.startingGameState = startingGameState
         self.walls = startingGameState.getWalls()
-        print("=== Walls Grid (Actual Stored Data) ===")
-        for y in range(self.walls.height):  # Use .height for row iteration
-            row_data = "".join(["T" if self.walls[x][y] else "F" for x in range(self.walls.width)])  # Use .width for columns
-            print(f"Row {y}: {row_data}")
-        print("=======================================")
+        # print("=== Walls Grid (Actual Stored Data) ===")
+        # for y in range(self.walls.height):  # Use .height for row iteration
+        #     row_data = "".join(["T" if self.walls[x][y] else "F" for x in range(self.walls.width)])  # Use .width for columns
+        #     print(f"Row {y}: {row_data}")
+        # print("=======================================")
         self.startingPosition = startingGameState.getPacmanPosition()
         top, right = self.walls.height-2, self.walls.width-2
         self.corners = ((1,1), (1,top), (right, 1), (right, top))
