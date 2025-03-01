@@ -1,0 +1,22 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+
+    {
+      "name": "PacMan Tiny Corners BFS",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/HW3/search/pacman.py",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}/HW3/search",
+      "args": [
+        "-l",
+        "tinyCorners",
+        "-p",
+        "SearchAgent",
+        "-a",
+        "fn=bfs,prob=CornersProblem"
+      ]
+    }
+  ]
+}
